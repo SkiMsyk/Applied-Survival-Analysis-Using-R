@@ -1,0 +1,42 @@
+---
+title: "Chapter 3 : Xelox data"
+output: html_notebook
+---
+
+# import packages
+
+```{r}
+library(tidyverse)
+library(survival)
+library(asaur)
+```
+
+# data preparation
+
+```{r}
+data(gastricXelox)
+```
+
+```{r}
+gastricXelox %>% str()
+```
+
+```{r}
+gastricXelox$delta %>% sum()
+```
+
+```{r}
+gastricXelox$timeWeeks %>% hist()
+```
+
+
+# estimation
+
+```{r}
+timeMonths <- gastricXelox$timeWeeks * 7/30.25
+delta <- gastricXelox$delta
+result <- survfit(Surv(timeMonths, delta) ~ 1, conf.type="log-log")
+plot(result, conf.int=T, mark="|", xlab="Time in months", ylab="Survival probability")
+title("Progression-free Survival in Gastric Cancer Patients")
+```
+
