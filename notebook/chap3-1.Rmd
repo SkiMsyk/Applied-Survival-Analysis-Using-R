@@ -9,6 +9,7 @@ output: html_notebook
 library(tidyverse)
 library(survival)
 library(asaur)
+library(muhaz)
 ```
 
 # data preparation
@@ -39,4 +40,83 @@ result <- survfit(Surv(timeMonths, delta) ~ 1, conf.type="log-log")
 plot(result, conf.int=T, mark="|", xlab="Time in months", ylab="Survival probability")
 title("Progression-free Survival in Gastric Cancer Patients")
 ```
+
+```{r}
+summary(result)
+```
+
+```{r}
+result
+```
+
+## Median Follow-Up Time
+
+```{r}
+delta.followup <- 1 - delta
+survfit(Surv(timeMonths, delta.followup) ~ 1)
+```
+
+```{r}
+median(timeMonths)
+```
+
+
+# Obtaining a Smoothed Hazard and Survival Function Estimate  
+
+```{r}
+t.vec <- c(7,6,6,5,2,4,8)
+cens.vec <- c(0,1,0,0,1,1,0)
+result <- muhaz(t.vec, cens.vec, 
+								max.time=8, bw.grid=2.25, 
+								bw.method="global", b.cor="none")
+plot(result)
+```
+
+
+```{r}
+t.vec <- c(7,6,6,5,2,4,8)
+cens.vec <- c(0,1,0,0,1,1,0)
+result <- muhaz(t.vec, cens.vec, 
+								max.time=8, 
+								bw.method="local", b.cor="none")
+plot(result)
+```
+
+
+## application to gastricXelox
+
+```{r}
+result <- pehaz(timeMonths, delta, width=5, max.time=20)
+plot(result, ylim=c(0,0.15), col="black")
+
+lines(
+  pehaz(timeMonths, delta, width=1, max.time=20)
+)
+
+lines(
+  muhaz(timeMonths, delta, bw.smooth=20, b.cor="left", max.time=20)
+)
+```
+
+# Estimating survival function from smoothed hazard function
+
+```{r}
+result_smooth <- muhaz(timeMonths, delta, bw.smooth=20, b.cor="left", max.time=20)
+haz <- result_smooth$haz.est
+times <- result_smooth$est.grid
+surv <- exp(-cumsum(haz[1:(length(haz)-1)]*diff(times)))
+```
+
+
+compare smoothed survival estimate to the Kaplan-Meier estimate
+
+```{r}
+result_km <- survfit(Surv(timeMonths, delta) ~ 1, conf.type="non")
+plot(result_km, conf.int=T, mark="|", xlab="Time in months", 
+     xlim=c(0,30), ylab="Survival probability")
+lines(
+  surv ~ times[1:(length(times)-1)], col="orange"
+)
+```
+
 
